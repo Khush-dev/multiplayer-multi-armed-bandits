@@ -1,5 +1,5 @@
 # multiplayer-multi-armed-bandits
-This repo contains code for local multiplayer multi-armed bandit algorthm testing and competiting locally. 
+This repo contains code for multi-armed bandit algorthm testing and local multiplayer competition. 
 
 To run the application:
 

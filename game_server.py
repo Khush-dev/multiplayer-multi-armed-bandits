@@ -5,8 +5,19 @@ import matplotlib.pyplot as plt
 import numpy as np
 from time import sleep, time
 import random
+import yaml
 
+with open('params.yml', 'rb') as f:
+    params = yaml.safe_load(f.read())
 
+MAX_ITERS = params['MAX_ITERS']
+NUM_COINS = params['NUM_COINS']
+MAX_RUNS = params['MAX_RUNS']
+
+HOST_PORT = params['SERVER_PORT']
+HOST_ADDR = params['SERVER_IP']
+
+print(params)
 
 class Player:
     def __init__(self,addr):
@@ -71,20 +82,11 @@ clientFrame.pack(side=tk.BOTTOM, pady=(5, 10))
 
 
 server = None
-if len(sys.argv) == 1:
-    HOST_ADDR ="127.0.0.1"
-else:
-    HOST_ADDR = sys.argv[1]
-HOST_PORT = 8080
 client_name = " "
 clients = []
 clients_names = []
 leaderboard = []
 
-## PARAMETERS
-MAX_ITERS = 100
-MAX_RUNS = 1000
-NUM_COINS = 3
 
 ## Random Number Generation
 outcome = []
@@ -175,8 +177,10 @@ def send_receive_client_message(client_connection, client_ip_addr, player):
             # random.shuffle(player.coin_map)
         client_connection.send(dataToSend.encode())
 
-
-    client_connection.send(f"res{player.score/MAX_RUNS}${p}".encode())
+    shuffled_p = []
+    for i in range(NUM_COINS):
+        shuffled_p.append(p[player.coin_map[i]])
+    client_connection.send(f"res{player.score/MAX_RUNS}${shuffled_p}".encode())
     print([player.name,player.score/MAX_RUNS])
     global leaderboard
     leaderboard.append([player.score/MAX_RUNS,player.name])

@@ -24,7 +24,7 @@ class Player:
         self.client = None
         self.host_port = HOST_PORT
         self.host_addr = HOST_ADDR
-        self.algorithm = algorithm
+        self.algorithm = algorithm # function takes in args tossed and heads and returns choice
         self.iter = 0
         self.run = 0
         self.score = 0
@@ -33,7 +33,6 @@ class Player:
         self.em = [[[0.0 for j in range(NUM_COINS)]] for i in range(MAX_RUNS)] #final shape MAX_RUNS,MAX_ITERS+1,NUM_COINS
 
     def connect(self):
-        # self.name = #input("Enter your username: ")
         print( f"Your name: {self.name}")
         self.connect_to_server(self.name)
 
@@ -67,9 +66,6 @@ class Player:
             self.client.connect((str(self.host_addr), int(self.host_port)))
             self.client.send(self.name.encode())  # Send name to server after connecting
 
-            # # start a thread to keep receiving message from server
-            # # do not block the main thread :)
-            # threading._start_new_thread(self.receive_message_from_server, (self.client, "m"))
             self.receive_message_from_server(self.client, "m")
         except ConnectionRefusedError as e:
             print(f"Cannot connect to host: {self.host_addr} on port: {str(self.host_port)} Server may be Unavailable. Try again later")
@@ -84,17 +80,22 @@ class Player:
                 break
 
             if from_server.startswith("welcome"):
+                ## Print Welcome message and start choosing
                 print(
                     f"Server says: Welcome {self.name} !"
                 )
                 self.choose(self.algorithm(self.tossed,self.heads))
+
             elif from_server.startswith("out"):
+                ## Print outcome of choice and choose again
                 outcome = int(from_server[3:].split('$')[0])
                 print(f"Outcome: {outcome}")
                 self.update(self.choice,outcome)
                 if self.run < MAX_RUNS :
                     self.choose(self.algorithm(self.tossed,self.heads))
+
             elif from_server.startswith("res"):
+                ## Print Result message
                 score,p_vals = from_server[3:].split('$')
                 score = float(score)
                 self.p_vals = json.loads(p_vals)
@@ -104,6 +105,7 @@ class Player:
                     self.show_avg_run()
                 self.show_first_run()
 
+            ## TODO: update params
         sck.close()
 
     def show_avg_run(self):
@@ -119,10 +121,7 @@ class Player:
 
         for p in self.p_vals:
             plt.axhline(y=p, linestyle='--',alpha=0.3)
-        # plt.axhline(y=p2, color='g', linestyle='--',alpha=0.3)
-        # plt.axhline(y=p3, color='b', linestyle='--',alpha=0.3)
 
-        # print(em_avg,em.shape)
         for i in range(NUM_COINS):
             plt.plot(t, em_avg[i], label = f"Coin {i+1}")
         plt.title("Time variation of empirical averages (averaged over all runs)")
@@ -141,8 +140,6 @@ class Player:
 
         for p in self.p_vals:
             plt.axhline(y=p, linestyle='--',alpha=0.3)
-        # plt.axhline(y=p2, color='g', linestyle='--',alpha=0.3)
-        # plt.axhline(y=p3, color='b', linestyle='--',alpha=0.3)
 
         for i in range(NUM_COINS):
             plt.plot(t, em[i], label = f"Coin {i+1}")

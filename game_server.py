@@ -42,6 +42,7 @@ class Player:
         return self.coin_map[choice]
 
 
+## You can safely ignore Tkinter stuff
 
 window = tk.Tk()
 window.title("Server")
@@ -82,10 +83,9 @@ clientFrame.pack(side=tk.BOTTOM, pady=(5, 10))
 
 
 server = None
-client_name = " "
 clients = []
-clients_names = []
-leaderboard = []
+clients_names = [] #stores client names
+leaderboard = [] #stores the leaderboard
 
 
 ## Random Number Generation
@@ -93,12 +93,15 @@ outcome = []
 p = []
 for i in range(NUM_COINS):
     p.append(random.random()*0.8 + 0.1)
+    # p ~ uniform(0.1,0.9)
+    # tried to avoid to high or low values; change accordingly
 print(p)
+# Pre-compute outcome
 outcome = np.random.binomial(size=[MAX_ITERS,MAX_RUNS,NUM_COINS], n=1, p=p)
 
 # Start server function
 def start_server():
-    global server, HOST_ADDR, HOST_PORT  # code is fine without this
+    global server, HOST_ADDR, HOST_PORT
     btnStart.config(state=tk.DISABLED)
     btnStop.config(state=tk.NORMAL)
 
@@ -126,7 +129,7 @@ def stop_server():
 
 def accept_clients(the_server, y):
     while True:
-        if len(clients) < 400:
+        if len(clients) < 400: # Limit the number of players here
             client, addr = the_server.accept()
             clients.append(client)
             player = Player(addr)
@@ -134,10 +137,9 @@ def accept_clients(the_server, y):
             threading._start_new_thread(send_receive_client_message, (client, addr, player))
 
 
-# Function to receive message from current client AND
-# Send that message to other clients
+# Function to receive message from current clients
 def send_receive_client_message(client_connection, client_ip_addr, player):
-    global server, client_name, clients
+    global server, clients
 
     client_msg = " "
 
@@ -149,14 +151,6 @@ def send_receive_client_message(client_connection, client_ip_addr, player):
     clients_names.append(client_name)
     update_client_names_display(clients_names)  # update client names display
 
-    # if len(clients) > 1:
-    #     sleep(1)
-
-        # # send opponent name
-        # clients[0].send(("opponent_name$" + clients_names[1]).encode())
-        # clients[1].send(("opponent_name$" + clients_names[0]).encode())
-        # go to sleep
-
     while (player.run < MAX_RUNS):
         data = client_connection.recv(4096).decode()
         if not data:
@@ -165,25 +159,31 @@ def send_receive_client_message(client_connection, client_ip_addr, player):
         # get the player choice from received data
         player_choice = data
 
-        # send player 1 choice to player 2 and vice versa
+        # send the outcome of the player's choice
         reward = outcome[player.iter][player.run][player.shuffle(player_choice)]
         player.score += reward
         dataToSend = "out" + str(reward)
 
+        #Update iter count
         player.iter += 1
         if player.iter == MAX_ITERS:
             player.iter = 0
             player.run += 1
             # random.shuffle(player.coin_map)
+            ## Uncomment above to shuffle after each run
         client_connection.send(dataToSend.encode())
 
+    # send the final result and clean-up
     shuffled_p = []
     for i in range(NUM_COINS):
         shuffled_p.append(p[player.coin_map[i]])
+        # p values according to player's coin_map
     client_connection.send(f"res{player.score/MAX_RUNS}${shuffled_p}".encode())
+
     print([player.name,player.score/MAX_RUNS])
     global leaderboard
     leaderboard.append([player.score/MAX_RUNS,player.name])
+
     # find the client index then remove from both lists(client name list and connection list)
     idx = get_client_index(clients, client_connection)
     del clients_names[idx]
